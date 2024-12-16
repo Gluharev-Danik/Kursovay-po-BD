@@ -1,0 +1,128 @@
+import sqlite3
+
+# Функция для создания таблиц в базе данных
+def create_tables():
+    connection_params = {"database": "mydb.sqlite3"}
+
+    # Подключение к базе данных
+    connect = sqlite3.connect(connection_params["database"])
+    cursor = connect.cursor()
+
+    # Создание таблицы Склад
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Склад (
+            ID_склада INTEGER PRIMARY KEY,
+            Адрес TEXT NOT NULL,
+            Телефон TEXT,
+            ФИО_менеджера TEXT
+        )
+    ''')
+
+    # Создание таблицы Товар
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Товар (
+            ID_товара INTEGER PRIMARY KEY,
+            Название TEXT NOT NULL,
+            Категория TEXT,
+            Цена REAL NOT NULL,
+            Количество INTEGER NOT NULL,
+            ID_склада INTEGER,
+            FOREIGN KEY (ID_склада) REFERENCES Склад(ID_склада)
+        )
+    ''')
+
+    # Создание таблицы Продавец
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Продавец (
+            ID_продавца INTEGER PRIMARY KEY,
+            Имя TEXT NOT NULL,
+            Фамилия TEXT NOT NULL,
+            Дата_найма TEXT,
+            Зарплата REAL
+        )
+    ''')
+
+    # Создание таблицы Касса
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Касса (
+            ID_кассы INTEGER PRIMARY KEY,
+            Местоположение TEXT NOT NULL,
+            ID_продавца INTEGER,
+            Общая_выручка REAL DEFAULT 0,
+            FOREIGN KEY (ID_продавца) REFERENCES Продавец(ID_продавца)
+        )
+    ''')
+
+    # Создание таблицы Клиент (добавлены связи с Кассой и Товаром)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Клиент (
+            ID_клиента INTEGER PRIMARY KEY,
+            Имя TEXT NOT NULL,
+            Фамилия TEXT NOT NULL,
+            Телефон TEXT UNIQUE,
+            ID_кассы INTEGER,
+            ID_товара INTEGER,
+            ID_продавца INTEGER,
+            FOREIGN KEY (ID_кассы) REFERENCES Касса(ID_кассы),
+            FOREIGN KEY (ID_товара) REFERENCES Товар(ID_товара),
+            FOREIGN KEY (ID_продавца) REFERENCES Продавец(ID_продавца)
+        )
+    ''')
+
+    # Вставка данных в таблицу Склад
+    cursor.executemany('''
+        INSERT OR IGNORE INTO Склад (ID_склада, Адрес, Телефон, ФИО_менеджера) 
+        VALUES (?, ?, ?, ?)
+    ''', [
+        (1, 'ул. Ленина, 10', '84951234567', 'Павел Николаевич'),
+        (2, 'ул. Пушкина, 25', '84959876543', 'Елена Ивановна')
+    ])
+
+    # Вставка данных в таблицу Товар
+    cursor.executemany('''
+        INSERT OR IGNORE INTO Товар (ID_товара, Название, Категория, Цена, Количество, ID_склада) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', [
+        (1, 'Хлеб', 'Продукты', 25.50, 100, 1),
+        (2, 'Молоко', 'Продукты', 60.00, 50, 1),
+        (3, 'Сыр', 'Молочные продукты', 200.00, 20, 2),
+        (4, 'Мясо', 'Мясные изделия', 450.00, 30, 2),
+        (5, 'Шоколад', 'Сладости', 80.00, 60, 1)
+    ])
+
+    # Вставка данных в таблицу Продавец
+    cursor.executemany('''
+        INSERT OR IGNORE INTO Продавец (ID_продавца, Имя, Фамилия, Дата_найма, Зарплата) 
+        VALUES (?, ?, ?, ?, ?)
+    ''', [
+        (1, 'Анна', 'Кузнецова', '2023-01-15', 35000.00),
+        (2, 'Пётр', 'Васильев', '2022-05-20', 40000.00)
+    ])
+
+    # Вставка данных в таблицу Касса
+    cursor.executemany('''
+        INSERT OR IGNORE INTO Касса (ID_кассы, Местоположение, ID_продавца, Общая_выручка) 
+        VALUES (?, ?, ?, ?)
+    ''', [
+        (1, 'Касса №1', 1, 5000.00),
+        (2, 'Касса №2', 2, 3000.00)
+    ])
+
+    # Вставка данных в таблицу Клиент (связаны с Кассой, Продавцом и Товаром)
+    cursor.executemany('''
+        INSERT OR IGNORE INTO Клиент (ID_клиента, Имя, Фамилия, Телефон, ID_кассы, ID_товара, ID_продавца) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', [
+        (1, 'Иван', 'Иванов', '89123456789', 1, 1, 1),
+        (2, 'Мария', 'Петрова', '89234567890', 2, 3, 2),
+        (3, 'Алексей', 'Смирнов', '89345678901', 1, 5, 1)
+    ])
+
+    # Зафиксировать изменения и закрыть соединение
+    connect.commit()
+    cursor.close()
+    connect.close()
+
+if __name__ == "__main__":
+    create_tables()
+    print("Таблицы созданы и данные успешно вставлены.")
